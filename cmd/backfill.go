@@ -24,38 +24,8 @@ func maxTime(values []time.Time) time.Time {
 	return max
 }
 
-func parseCmdDate(cmd *cobra.Command, name string, defaultValue time.Time) time.Time {
-	var err error
-
-	date, _ := cmd.Flags().GetString(name)
-
-	result := defaultValue
-	if date != "" {
-		result, err = time.Parse(app.DateLayout, date)
-		if err != nil {
-			log.Fatalf("%s date provided in wrong format: '%s'", name, date)
-		}
-	}
-	return result
-}
-
 func truncateToDay(t time.Time) time.Time {
 	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())
-}
-
-func checkColumns[T any](table *app.Table[T]) {
-	requiredColumns := viper.GetStringSlice("columns")
-
-	notFound := make([]string, 0)
-	for _, col := range requiredColumns {
-		if table.GetColumnIdx(col) == -1 {
-			notFound = append(notFound, col)
-		}
-	}
-
-	if len(notFound) != 0 {
-		log.Fatalf("Required columns %v are not found in google sheet", notFound)
-	}
 }
 
 func areDatesOverlapped(dates []time.Time, sheetDates []time.Time) bool {
@@ -84,19 +54,6 @@ func getStartedOptions(options []string) []time.Time {
 		}
 	}
 	return parsed
-}
-
-func initConfig(configFile string) {
-	viper.SetConfigName(configFile)
-	viper.SetConfigType("yaml")
-
-	viper.AddConfigPath(".")
-
-	if err := viper.ReadInConfig(); err == nil {
-		log.Println("Using config file:", viper.ConfigFileUsed())
-	} else {
-		log.Fatalf("Can not read config file %s: %v", configFile, err)
-	}
 }
 
 // backfillCmd represents the backfill command
