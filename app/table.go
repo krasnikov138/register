@@ -72,3 +72,13 @@ func (table *Table[T]) GetColumnIndexer() map[string]int {
 	}
 	return indexer
 }
+
+func (table *Table[T]) GetRow(idx int) []T {
+	result := make([]T, table.NCols())
+
+	for i := range result {
+		result[i] = table.Values[i][idx]
+	}
+
+	return result
+}
