@@ -8,25 +8,54 @@ import (
 
 const timeLayout = "15:04:05"
 
-func Generate[T any](length int, choices []T) []T {
-	result := make([]T, length)
-	for i := range result {
-		result[i] = choices[rand.Intn(len(choices))]
-	}
-	return result
+func Choose[T any](items []T) T {
+	return items[rand.Intn((len(items)))]
 }
 
-func Transform[In any, Out any](values []In, transformer func(In) Out) []Out {
-	result := make([]Out, len(values))
-
-	for i, el := range values {
-		result[i] = transformer(el)
-	}
-
-	return result
+type Record struct {
+	Started  *time.Time
+	Finished *time.Time
+	Duration *time.Duration
+	Comment  string
 }
 
-func date2Number(d time.Time) float64 {
+// you can define your own generator using provided interface
+type Generator interface {
+	Gen(date time.Time) Record
+}
+
+type FixedWorkdayGenerator struct {
+	Vacations       []time.Time
+	StartedChoices  []time.Time
+	WorkdayDuration time.Duration
+}
+
+func (gen *FixedWorkdayGenerator) Gen(date time.Time) Record {
+	_, isVac := sort.Find(
+		len(gen.Vacations),
+		func(j int) int { return date.Compare(gen.Vacations[j]) },
+	)
+
+	if isVac {
+		return Record{
+			Started:  nil,
+			Finished: nil,
+			Duration: nil,
+			Comment:  "vacationing",
+		}
+	}
+
+	started := Choose(gen.StartedChoices)
+	finished := started.Add(gen.WorkdayDuration)
+	return Record{
+		Started:  &started,
+		Finished: &finished,
+		Duration: &gen.WorkdayDuration,
+		Comment:  "",
+	}
+}
+
+func renderDate(d time.Time) float64 {
 	return d.Sub(time.Date(1899, 12, 30, 0, 0, 0, 0, d.Location())).Hours() / 24.0
 }
 
@@ -34,8 +63,18 @@ func durationFromHMS(h int, m int, s int) time.Duration {
 	return time.Duration(h)*time.Hour + time.Duration(m)*time.Minute + time.Duration(s)*time.Second
 }
 
-func time2Number(t time.Time) float64 {
+func renderTime(t *time.Time) interface{} {
+	if t == nil {
+		return ""
+	}
 	return durationFromHMS(t.Clock()).Hours() / 24.0
+}
+
+func renderDuration(d *time.Duration) interface{} {
+	if d == nil {
+		return ""
+	}
+	return d.Hours() / 24.0
 }
 
 type ColumnNames struct {
@@ -44,14 +83,10 @@ type ColumnNames struct {
 
 func GenerateTable(
 	dates []time.Time,
-	vacations []time.Time,
-	startedChoices []time.Time,
-	workdayDuration time.Duration,
+	gen Generator,
 	columns []string,
 	mapping ColumnNames,
 ) *Table[interface{}] {
-	startedHours := Generate(len(dates), startedChoices)
-
 	result := NewTableCols[interface{}](len(dates), columns)
 
 	datecol := result.GetColumn(mapping.Date)
@@ -62,21 +97,14 @@ func GenerateTable(
 	months := result.GetColumn(mapping.Month)
 
 	for i, date := range dates {
-		datecol[i] = date2Number(date)
-		months[i] = date.Month().String()
+		record := gen.Gen(date)
 
-		_, isVac := sort.Find(len(vacations), func(j int) int { return date.Compare(vacations[j]) })
-		if isVac {
-			comments[i] = "vacationing"
-			started[i] = ""
-			finished[i] = ""
-			durations[i] = ""
-		} else {
-			comments[i] = ""
-			started[i] = time2Number(startedHours[i])
-			finished[i] = time2Number(startedHours[i].Add(workdayDuration))
-			durations[i] = workdayDuration.Hours() / 24.0
-		}
+		datecol[i] = renderDate(date)
+		started[i] = renderTime(record.Started)
+		finished[i] = renderTime(record.Finished)
+		durations[i] = renderDuration(record.Duration)
+		comments[i] = record.Comment
+		months[i] = date.Month().String()
 	}
 
 	return result

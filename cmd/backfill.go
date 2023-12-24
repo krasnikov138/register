@@ -59,7 +59,7 @@ func getStartedOptions(options []string) []time.Time {
 // backfillCmd represents the backfill command
 var backfillCmd = &cobra.Command{
 	Use:   "backfill",
-	Short: "Backfill google table with random working day durations.",
+	Short: "Backfill google table with random working day durations",
 	Run: func(cmd *cobra.Command, args []string) {
 		// Use Viper to get the value of the "config" flag
 		initConfig(viper.GetString("config"))
@@ -110,16 +110,13 @@ var backfillCmd = &cobra.Command{
 			log.Println("Vacations file is not used")
 		}
 
-		workdayDuration, err := time.ParseDuration(viper.GetString("workday_duration"))
-		if err != nil {
-			log.Fatal("Can not parse workday duration in config file")
-		}
-
 		records := app.GenerateTable(
 			dates,
-			vacations,
-			getStartedOptions(viper.GetStringSlice("started_options")),
-			workdayDuration,
+			&app.FixedWorkdayGenerator{
+				Vacations:       vacations,
+				StartedChoices:  getStartedOptions(viper.GetStringSlice("started_options")),
+				WorkdayDuration: viper.GetDuration("workday_duration"),
+			},
 			table.Columns,
 			app.ColumnNames{
 				Date:     viper.GetString("columns.date"),
