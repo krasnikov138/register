@@ -88,8 +88,8 @@ var backfillCmd = &cobra.Command{
 			log.Fatalf("Can not parse Date column in sheet '%s': %s", SheetName, err)
 		}
 
-		startDate := parseCmdDate(cmd, "start", maxTime(sheetDates).AddDate(0, 0, 1))
-		endDate := parseCmdDate(cmd, "end", truncateToDay(time.Now()))
+		startDate := parseCmdDate("start", maxTime(sheetDates).AddDate(0, 0, 1))
+		endDate := parseCmdDate("end", truncateToDay(time.Now()))
 
 		log.Printf("Start backfilling google sheet '%s' with parameters from %s till %s\n",
 			SheetName, startDate.Format(app.DateLayout), endDate.Format(app.DateLayout))
@@ -146,4 +146,7 @@ func init() {
 
 	backfillCmd.Flags().StringP("start", "s", "", "Backfilling start date (last date from sheet is default)")
 	backfillCmd.Flags().StringP("end", "e", "", "Backfilling end date (today is default)")
+
+	viper.BindPFlag("start", backfillCmd.Flags().Lookup("start"))
+	viper.BindPFlag("end", backfillCmd.Flags().Lookup("end"))
 }

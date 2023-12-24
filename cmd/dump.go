@@ -120,7 +120,7 @@ var dumpCmd = &cobra.Command{
 			"csv":    tableCsvPrinter,
 		}
 
-		format, _ := cmd.Flags().GetString("format")
+		format := viper.GetString("format")
 		formatter, ok := formatters[format]
 		if !ok {
 			log.Fatalf("Wrong output format is provided: %s", format)
@@ -139,7 +139,7 @@ var dumpCmd = &cobra.Command{
 			log.Fatalf("Unable to retrieve Google Sheet table: %v", err)
 		}
 
-		out, _ := cmd.Flags().GetString("output")
+		out := viper.GetString("output")
 
 		var file *os.File
 		if len(out) != 0 {
@@ -164,6 +164,10 @@ var dumpCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(dumpCmd)
+
 	dumpCmd.Flags().StringP("output", "o", "", "output file (stdout if not provided)")
 	dumpCmd.Flags().StringP("format", "f", "pretty", "format for data representation (csv or pretty)")
+
+	viper.BindPFlag("output", dumpCmd.Flags().Lookup("output"))
+	viper.BindPFlag("format", dumpCmd.Flags().Lookup("format"))
 }

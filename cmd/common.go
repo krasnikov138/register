@@ -5,14 +5,13 @@ import (
 	"time"
 
 	"github.com/krasnikov138/register/app"
-	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
-func parseCmdDate(cmd *cobra.Command, name string, defaultValue time.Time) time.Time {
+func parseCmdDate(name string, defaultValue time.Time) time.Time {
 	var err error
 
-	date, _ := cmd.Flags().GetString(name)
+	date := viper.GetString(name)
 
 	result := defaultValue
 	if date != "" {
